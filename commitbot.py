@@ -4,21 +4,33 @@ from twisted.words.xish import domish
 from wokkel.subprotocols import XMPPHandler
 from wokkel.xmppim import AvailablePresence, Presence
 
-import simplejson as json
+import re
+import json
 
 
 NS_MUC = 'http://jabber.org/protocol/muc'
-NS_XHTML_IM = 'http://jabber.org/protocols/xhtml-im'
+NS_XHTML_IM = 'http://jabber.org/protocol/xhtml-im'
 NS_XHTML_W3C = 'http://www.w3.org/1999/xhtml'
+
+
+HTML_RE = re.compile('<[^<]+?>')
+
+
+STANDARD_FORMAT = {
+    'notification': '<h1><span style="font-weight: bold;">New commits in <a href="{repository[url]}" name="{repository[name]}">{repository[name]}</a><br/></span></h1>',
+    'commit': '<li><a href="{url}" name="{id}">{id:.8}</a>: {message:.50} | <em>{author[name]}</em><br/></li>'
+    }
+
 
 class CommitBot(XMPPHandler):
 
-    def __init__(self, room, nick, password=None):
+    def __init__(self, room, nick, password=None, format=STANDARD_FORMAT):
         XMPPHandler.__init__(self)
 
         self.room = room
         self.nick = nick
         self.password = password
+        self.format = format
 
     def connectionMade(self):
         self.send(AvailablePresence())
@@ -37,26 +49,22 @@ class CommitBot(XMPPHandler):
         # build the messages
         text = []
         html = []
-        link = r"<a href='%s' name='%s'>%s</a>"
-        
-        text.append('New commits in %s:\n' % data['repository']['url'])
-        html.append("New commits in " \
-                        "<a href='%s'>%s</a>:<br/>" % \
-                        (data['repository']['url'],
-                         data['repository']['name']))
 
+        _html = self.format['notification'].format(**data)
+        html.append(_html)
+        text.append(HTML_RE.sub('', _html))
+
+        html.append('<ul>')
         for c in data['commits']:
-            text.append('%s | %s | %s\n' % (c['message'],
-                                            c['author']['email'], 
-                                            c['url']))
-            ltxt = link % (c['url'], c['id'], c['id'][:7])
-            html.append('%s | %s | %s<br />' % (c['message'],
-                                                c['author']['email'],
-                                                ltxt))
+            _html = self.format['commit'].format(**c)
+            html.append(_html)
+            text.append(HTML_RE.sub('', _html))
+        html.append('</ul>')
+
         msg = domish.Element((None, 'message'))
         msg['to'] = self.room
         msg['type'] = 'groupchat'
-        msg.addElement('body', content=''.join(text))
+        msg.addElement('body', content='\n'.join(text))
         wrap = msg.addElement((NS_XHTML_IM, 'html'))
         body = wrap.addElement((NS_XHTML_W3C, 'body'))
         body.addRawXml(''.join(html))

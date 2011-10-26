@@ -17,8 +17,8 @@ HTML_RE = re.compile('<[^<]+?>')
 
 
 STANDARD_FORMAT = {
-    'notification': '<h1><span style="font-weight: bold;">New commits in <a href="{repository[url]}" name="{repository[name]}">{repository[name]}</a><br/></span></h1>',
-    'commit': '<li><a href="{url}" name="{id}">{id:.8}</a>: {message:.50} | <em>{author[name]}</em><br/></li>'
+    'notification': '<h1><span style="font-weight: bold;">New commits in <a href="{repository[url]}" name="{repository[name]}">{repository[name]}</a> ({ref})<br/></span></h1>',
+    'commit': '<li><a href="{url}" name="{id}">{id:.8}</a>: {title:.50} | <em>{author[name]}</em><br/></li>'
     }
 
 
@@ -56,6 +56,7 @@ class CommitBot(XMPPHandler):
 
         html.append('<ul>')
         for c in data['commits']:
+            c['title'] = c['message'].split('\n')[0]
             _html = self.format['commit'].format(**c)
             html.append(_html)
             text.append(HTML_RE.sub('', _html))

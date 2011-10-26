@@ -1,0 +1,15 @@
+{
+    "credentials": {
+        "jid": "gitbot@example.com",
+        "password": "gitbot"
+    },
+
+    "room": "test",
+    "room_password": null,
+    "nick": "gitbot",
+    
+    "format": {
+               "notification": "<h1><span style=\"font-weight: bold;\">New commits in <a href=\"{repository[url]}\" name=\"{repository[name]}\">{repository[name]}</a> ({ref})<br/></span></h1>",
+               "commit": "<li><a href=\"{url}\" name=\"{id}\">{id:.8}</a>: {title:.50} | <em>{author[name]}</em><br/></li>"
+              }
+}
